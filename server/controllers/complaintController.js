@@ -3,17 +3,35 @@ const Complaint = require('../models/Complaint');
 // Create Complaint (Customer)
 exports.createComplaint = async (req, res) => {
     try {
-        const { workerId, serviceRequestId, subject, description } = req.body;
+        const { worker, subject, description } = req.body;
+
+        // Handle general complaints (not about specific worker)
+        const workerValue = worker === 'general' ? 'general' : worker;
 
         const newComplaint = new Complaint({
             customer: req.user.id,
-            worker: workerId,
-            serviceRequest: serviceRequestId,
+            worker: workerValue,
             subject,
             description
         });
 
         const complaint = await newComplaint.save();
+
+        // Notify Admins
+        const User = require('../models/User');
+        const Notification = require('../models/Notification');
+        const admins = await User.find({ role: 'admin' });
+
+        const notifications = admins.map(admin => ({
+            userId: admin._id,
+            message: `New complaint filed: ${subject}`,
+            type: 'warning'
+        }));
+
+        if (notifications.length > 0) {
+            await Notification.insertMany(notifications);
+        }
+
         res.json(complaint);
     } catch (err) {
         console.error(err.message);
@@ -28,12 +46,35 @@ exports.getComplaints = async (req, res) => {
         if (req.user.role === 'admin') {
             complaints = await Complaint.find()
                 .populate('customer', 'name email')
-                .populate('worker', 'name email')
                 .populate('serviceRequest', 'serviceType');
+
+            // Populate worker field separately
+            complaints = await Promise.all(
+                complaints.map(async (complaint) => {
+                    if (complaint.worker && complaint.worker !== 'general') {
+                        return Complaint.findById(complaint._id)
+                            .populate('customer', 'name email')
+                            .populate('serviceRequest', 'serviceType')
+                            .populate('worker', 'name email');
+                    }
+                    return complaint;
+                })
+            );
         } else if (req.user.role === 'customer') {
             complaints = await Complaint.find({ customer: req.user.id })
-                .populate('worker', 'name')
                 .populate('serviceRequest', 'serviceType');
+
+            // Populate worker field separately
+            complaints = await Promise.all(
+                complaints.map(async (complaint) => {
+                    if (complaint.worker && complaint.worker !== 'general') {
+                        return Complaint.findById(complaint._id)
+                            .populate('serviceRequest', 'serviceType')
+                            .populate('worker', 'name');
+                    }
+                    return complaint;
+                })
+            );
         } else if (req.user.role === 'worker') {
             complaints = await Complaint.find({ worker: req.user.id })
                 .populate('customer', 'name')

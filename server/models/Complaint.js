@@ -7,9 +7,8 @@ const ComplaintSchema = new mongoose.Schema({
         required: true
     },
     worker: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: true
+        type: mongoose.Schema.Types.Mixed, // Can be ObjectId or String
+        ref: 'User'
     },
     serviceRequest: {
         type: mongoose.Schema.Types.ObjectId,

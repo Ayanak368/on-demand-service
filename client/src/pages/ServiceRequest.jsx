@@ -31,10 +31,16 @@ const ServiceRequest = () => {
                 alert('Request Created Successfully');
                 navigate('/dashboard');
             } else {
-                alert('Error creating request');
+                const errorData = await res.json().catch(() => null);
+                if (errorData && errorData.msg) {
+                    alert(errorData.msg);
+                } else {
+                    alert('Error creating request');
+                }
             }
         } catch (err) {
             console.error(err);
+            alert('A network error occurred. Please try again.');
         }
     };
 
