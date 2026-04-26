@@ -1,0 +1,5 @@
+[dotenv@17.3.1] injecting env (5) from .env -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+Attempting to connect to MongoDB...
+MONGO_URI exists: true
+Server running on port 5001
+✓ MongoDB Connected Successfully!
